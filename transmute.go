@@ -11,6 +11,11 @@ import (
 
 type any = interface{}
 
+const OperatorFormat = "#format"
+const OperatorMap = "#map"
+const OperatorFirst = "#first"
+const OperatorTransmute = "#transmute"
+
 func Transmute(value any, context any) (any, error) {
 	switch valueTyped := value.(type) {
 	case string:
@@ -43,11 +48,17 @@ func transmuteSlice(value []any, context any) (result []any, err error) {
 }
 
 func transmuteMap(value map[string]any, context any) (any, error) {
-	if _, ok := value["#format"]; ok {
-		return transmuteFormat(value, context)
+	if _, ok := value[OperatorFormat]; ok {
+		return transmuteOpFormat(value, context)
 	}
-	if _, ok := value["#each"]; ok {
-		return transmuteEach(value, context)
+	if _, ok := value[OperatorMap]; ok {
+		return transmuteOpMap(value, context)
+	}
+	if _, ok := value[OperatorFirst]; ok {
+		return transmuteOpFirst(value, context)
+	}
+	if item, ok := value[OperatorTransmute]; ok {
+		return Transmute(item, context)
 	}
 
 	resultMap := make(map[string]any)
@@ -71,8 +82,8 @@ func newTplJsonPathLookup(context any) func(string) any {
 	}
 }
 
-func transmuteFormat(value map[string]any, context any) (result string, err error) {
-	switch formatString := value["#format"].(type) {
+func transmuteOpFormat(value map[string]any, context any) (result string, err error) {
+	switch formatString := value[OperatorFormat].(type) {
 	case string:
 		buf := &bytes.Buffer{}
 		var tpl *template.Template
@@ -91,24 +102,24 @@ func transmuteFormat(value map[string]any, context any) (result string, err erro
 	}
 }
 
-func transmuteEach(value map[string]any, context any) (result []any, err error) {
-	var exprAny any
-	var exprSlice []any
+func transmuteOpMap(value map[string]any, context any) (result []any, err error) {
+	var mapTransmuted any
+	var mapAsSlice []any
 	var ok bool
 
-	if exprAny, err = Transmute(value["#each"], context); err != nil {
+	if mapTransmuted, err = Transmute(value[OperatorMap], context); err != nil {
 		return
 	}
-	if exprSlice, ok = exprAny.([]any); !ok {
+	if mapAsSlice, ok = mapTransmuted.([]any); !ok {
 		err = errors.New(fmt.Sprintf(
-			"#each expected to evaluate to []interface{}, actual %#+v",
-			exprAny))
+			"#map expected to evaluate to []interface{}, actual %#+v",
+			mapTransmuted))
 		return
 	}
 
-	rest := restMap(value, "#each")
+	rest := restMap(value, OperatorMap)
 
-	for _, item := range exprSlice {
+	for _, item := range mapAsSlice {
 		itemContext := map[string]any{
 			"parent": context,
 			"it":     item,
@@ -119,6 +130,25 @@ func transmuteEach(value map[string]any, context any) (result []any, err error) 
 		}
 		result = append(result, resultIt)
 	}
+	return
+}
+
+func transmuteOpFirst(value map[string]any, context any) (result any, err error) {
+	var firstTransmuted any
+	var firstSlice []any
+	var ok bool
+
+	if firstTransmuted, err = Transmute(value[OperatorFirst], context); err != nil {
+		return
+	}
+
+	if firstSlice, ok = firstTransmuted.([]any); ok {
+		for _, val := range firstSlice {
+			result = val
+			return
+		}
+	}
+	result = firstTransmuted
 	return
 }
 

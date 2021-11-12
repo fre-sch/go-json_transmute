@@ -28,7 +28,7 @@ any operator, `expression` simply describes the resulting JSON value.
 ```javascript
 let expression = {
     "person": {
-        "firstname": "Alice",
+        "firstname": "Alice"
     }
 }
 let context = {
@@ -36,7 +36,7 @@ let context = {
 }
 Transmute(expression, context) === {
     "person": {
-        "firstname": "Alice".
+        "firstname": "Alice"
     }
 }
 ```
@@ -129,16 +129,16 @@ Transmute(expression, context) === "Albert"
 ```
 
 
-### `#each`
+### `#map`
 
-`#each` creates arrays from `context`. `#each`s value can be a JSON-Path
-referencing `context` or an array. `#each` iterates the items in array, and
+`#map` creates arrays from `context`. `#map`s value can be a JSON-Path
+referencing `context` or an array. `#map` iterates the items in array, and
 provides access to the current items as `$.it` while `$.parent` refers to the
 original `context`.
 
 ```javascript
 let expression = {
-    "#each": "$.tags",
+    "#map": "$.tags",
     "title": "$.it",
     "price": "$.parent.defaultPrice"
 }
@@ -164,7 +164,7 @@ Transmute(expression, context) === [
 
 ```javascript
 let expression = {
-    "#each": "$.products.*",
+    "#map": "$.products.*",
     "title": "$.it.title.en",
     "price": "$.it.price.USD"
 }
@@ -203,6 +203,131 @@ Transmute(expression, context) === [
     {
         "title": "Pork cutlet, breaded",
         "price": 3.00
+    }
+]
+```
+
+### `#sum`
+
+Sum of values.
+
+```javascript
+let expression = {
+    "#sum": "$.products.*.price"
+}
+let context = {
+    "products": [
+        {
+            "price": 1
+        },
+        {
+            "price": 2
+        },
+        {
+            "price": "invalid value",
+        },
+        {
+            "price": 3,
+        }
+    ]
+}
+Transmute(expression, context) === 6
+```
+
+### `#join`
+
+```javascript
+let expression = {
+    "#join": "$.products.*.title",
+    "#separator": " | "
+}
+let context = {
+    "products": [
+        {
+            "title": "Beer",
+            "price": 1
+        },
+        {
+            "title": "Pizza",
+            "price": 2
+        },
+        {
+            "title": "Brownies",
+            "price": 3
+        }
+    ]
+}
+Transmute(expression, context) === "Beer | Pizza | Brownies"
+```
+
+
+### `#coalesce`
+
+```javascript
+let expression = {
+    "#coalesce": "$.products"
+}
+let context = {
+    "products": [
+        {
+            "title": "one"
+        },
+        {
+            "title": "two"
+        },
+        null,
+        {
+            "title": "three",
+        }
+    ]
+}
+Transmute(expression, context) === [
+    {
+        "title": "one"
+    },
+    {
+        "title": "two"
+    },
+    {
+        "title": "three"
+    }
+]
+```
+
+### `#transmute`
+
+Defer value evaluation
+
+```javascript
+let expression = {
+    "#map": {
+        "#transmute": "$.propname"
+    },
+    "label": "$.it.title"
+}
+let context = {
+    "propname": "products",
+    "products": [
+        {
+            "title": "one"
+        },
+        {
+            "title": "two"
+        },
+        {
+            "title": "three"
+        }
+    ]
+}
+Transmute(expression, context) === [
+    {
+        "label": "one"
+    },
+    {
+        "label": "two"
+    },
+    {
+        "label": "three"
     }
 ]
 ```
