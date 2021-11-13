@@ -58,19 +58,27 @@ func transmuteMap(value map[string]any, context any) (any, error) {
 		return transmuteOpFirst(value, context)
 	}
 	if item, ok := value[OperatorTransmute]; ok {
-		return Transmute(item, context)
-	}
-
-	resultMap := make(map[string]any)
-	for key, item := range value {
-		itemResult, err := Transmute(item, context)
-		if err != nil {
-			return nil, err
+		res, err := Transmute(item, context)
+		if err == nil {
+			return Transmute(res, context)
 		}
-		resultMap[key] = itemResult
+		return nil, err
 	}
 
-	return resultMap, nil
+	return transmuteMapItems(value, context)
+}
+
+func transmuteMapItems(value map[string]any, context any) (result map[string]any, err error) {
+	result = make(map[string]any)
+	for key, item := range value {
+		var itemTransmuted any
+		itemTransmuted, err = Transmute(item, context)
+		if err != nil {
+			return
+		}
+		result[key] = itemTransmuted
+	}
+	return
 }
 
 func newTplJsonPathLookup(context any) func(string) any {
