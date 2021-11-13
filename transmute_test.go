@@ -353,3 +353,114 @@ func TestTransmute(t *testing.T) {
 		t.Fatalf("\nexpected: %#+v\nreceived %#+v\n", expected, result)
 	}
 }
+
+func TestSumPlainNumbersArray(t *testing.T) {
+	expr := map[string]any{
+		"#sum": []any{
+			float64(1.1),
+			float64(2.1),
+			float64(3.2),
+		},
+	}
+	context := any(nil)
+	result, err := Transmute(expr, context)
+
+	if err != nil {
+		t.Fatalf("failed transmute with: %#+v", err)
+	}
+
+	var expected any = float64(6.4)
+
+	if !reflect.DeepEqual(expected, result) {
+		t.Fatalf("\nexpected: %#+v\nreceived %#+v\n", expected, result)
+	}
+}
+
+func TestSumStringsArray(t *testing.T) {
+	expr := map[string]any{
+		"#sum": []any{
+			"1.1",
+			"2.1",
+			"3.2",
+		},
+	}
+	context := any(nil)
+	result, err := Transmute(expr, context)
+
+	if err != nil {
+		t.Fatalf("failed transmute with: %#+v", err)
+	}
+
+	var expected any = float64(6.4)
+
+	if !reflect.DeepEqual(expected, result) {
+		t.Fatalf("\nexpected: %#+v\nreceived %#+v\n", expected, result)
+	}
+}
+
+func TestSumNonNumbers(t *testing.T) {
+	expr := map[string]any{
+		"#sum": []any{
+			map[string]any{
+				"not": "a number",
+			},
+			"not a number",
+			[]any{
+				"not",
+				"a",
+				"number",
+			},
+			true,
+			false,
+			nil,
+		},
+	}
+	context := any(nil)
+	result, err := Transmute(expr, context)
+
+	if err != nil {
+		t.Fatalf("failed transmute with: %#+v", err)
+	}
+
+	var expected any = float64(0)
+
+	if !reflect.DeepEqual(expected, result) {
+		t.Fatalf("\nexpected: %#+v\nreceived %#+v\n", expected, result)
+	}
+}
+
+func TestSumContext(t *testing.T) {
+	expr := map[string]any{
+		"#sum": "$.numbers",
+	}
+	context := map[string]any{
+		"numbers": []any{
+			float64(1.1),
+			map[string]any{
+				"not": "a number",
+			},
+			"not a number",
+			"2.1",
+			[]any{
+				"not",
+				"a",
+				"number",
+			},
+			true,
+			float64(3.2),
+			false,
+			nil,
+		},
+	}
+	result, err := Transmute(expr, context)
+
+	if err != nil {
+		t.Fatalf("failed transmute with: %#+v", err)
+	}
+
+	var expected any = float64(6.4)
+
+	if !reflect.DeepEqual(expected, result) {
+		t.Fatalf("\nexpected: %#+v\nreceived %#+v\n", expected, result)
+	}
+}

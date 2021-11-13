@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
 	"text/template"
 
 	"github.com/oliveagle/jsonpath"
@@ -15,6 +16,7 @@ const OperatorFormat = "#format"
 const OperatorMap = "#map"
 const OperatorFirst = "#first"
 const OperatorTransmute = "#transmute"
+const OperatorSum = "#sum"
 
 func Transmute(value any, context any) (any, error) {
 	switch valueTyped := value.(type) {
@@ -48,6 +50,13 @@ func transmuteSlice(value []any, context any) (result []any, err error) {
 }
 
 func transmuteMap(value map[string]any, context any) (any, error) {
+	if item, ok := value[OperatorTransmute]; ok {
+		res, err := Transmute(item, context)
+		if err == nil {
+			return Transmute(res, context)
+		}
+		return nil, err
+	}
 	if _, ok := value[OperatorFormat]; ok {
 		return transmuteOpFormat(value, context)
 	}
@@ -57,12 +66,8 @@ func transmuteMap(value map[string]any, context any) (any, error) {
 	if _, ok := value[OperatorFirst]; ok {
 		return transmuteOpFirst(value, context)
 	}
-	if item, ok := value[OperatorTransmute]; ok {
-		res, err := Transmute(item, context)
-		if err == nil {
-			return Transmute(res, context)
-		}
-		return nil, err
+	if _, ok := value[OperatorSum]; ok {
+		return transmuteOpSum(value, context)
 	}
 
 	return transmuteMapItems(value, context)
@@ -169,4 +174,37 @@ func restMap(value map[string]any, omitKeys ...string) (result map[string]any) {
 		delete(result, key)
 	}
 	return
+}
+
+func transmuteOpSum(value map[string]any, context any) (result float64, err error) {
+	var sumTransmuted any
+	var sumSlice []any
+	var ok bool
+
+	sumTransmuted, err = Transmute(value[OperatorSum], context)
+	if err != nil {
+		return
+	}
+
+	if sumSlice, ok = sumTransmuted.([]any); !ok {
+		err = errors.New(fmt.Sprintf(
+			"#sum expected to evaluate to []interface{}, actual %#+v",
+			sumTransmuted))
+		return
+	}
+
+	result = sumValues(sumSlice...)
+	return result, nil
+}
+
+func sumValues(values ...any) float64 {
+	var x, y big.Float
+
+	for _, v := range values {
+		if _, _, err := x.Parse(fmt.Sprint(v), 10); err == nil {
+			y.Add(&y, &x)
+		}
+	}
+	t, _ := y.Float64()
+	return t
 }
