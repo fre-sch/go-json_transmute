@@ -1,4 +1,4 @@
-module fre-sch.github.com/go-libtransmute
+module github.com/fre-sch/go-libtransmute
 
 go 1.17
 
