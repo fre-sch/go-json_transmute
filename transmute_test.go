@@ -464,3 +464,54 @@ func TestSumContext(t *testing.T) {
 		t.Fatalf("\nexpected: %#+v\nreceived %#+v\n", expected, result)
 	}
 }
+
+func TestExtendUnusedContext(t *testing.T) {
+	expr := map[string]any{
+		"#extend": map[string]any{
+			"base": "value",
+		},
+		"key": "value",
+	}
+	context := any(nil)
+	result, err := Transmute(expr, context)
+	if err != nil {
+		t.Fatalf("failed transmute with: %#+v", err)
+	}
+
+	var expected any = map[string]any{
+		"base": "value",
+		"key":  "value",
+	}
+
+	if !reflect.DeepEqual(expected, result) {
+		t.Fatalf("\nexpected: %#+v\nreceived %#+v\n", expected, result)
+	}
+}
+
+func TestExtendOverwriteAdd(t *testing.T) {
+	expr := map[string]any{
+		"#extend":  "$.person",
+		"lastName": "Modified",
+		"country":  "DefaultCountry",
+	}
+	context := map[string]any{
+		"person": map[string]any{
+			"firstName": "Alice",
+			"lastName":  "Tester",
+		},
+	}
+	result, err := Transmute(expr, context)
+	if err != nil {
+		t.Fatalf("failed transmute with: %#+v", err)
+	}
+
+	var expected any = map[string]any{
+		"firstName": "Alice",
+		"lastName":  "Modified",
+		"country":   "DefaultCountry",
+	}
+
+	if !reflect.DeepEqual(expected, result) {
+		t.Fatalf("\nexpected: %#+v\nreceived %#+v\n", expected, result)
+	}
+}

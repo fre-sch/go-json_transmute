@@ -12,11 +12,12 @@ import (
 
 type any = interface{}
 
+const OperatorExtend = "#extend"
+const OperatorFirst = "#first"
 const OperatorFormat = "#format"
 const OperatorMap = "#map"
-const OperatorFirst = "#first"
-const OperatorTransmute = "#transmute"
 const OperatorSum = "#sum"
+const OperatorTransmute = "#transmute"
 
 func Transmute(value any, context any) (any, error) {
 	switch valueTyped := value.(type) {
@@ -57,14 +58,17 @@ func transmuteMap(value map[string]any, context any) (any, error) {
 		}
 		return nil, err
 	}
+	if _, ok := value[OperatorExtend]; ok {
+		return transmuteOpExtend(value, context)
+	}
+	if _, ok := value[OperatorFirst]; ok {
+		return transmuteOpFirst(value, context)
+	}
 	if _, ok := value[OperatorFormat]; ok {
 		return transmuteOpFormat(value, context)
 	}
 	if _, ok := value[OperatorMap]; ok {
 		return transmuteOpMap(value, context)
-	}
-	if _, ok := value[OperatorFirst]; ok {
-		return transmuteOpFirst(value, context)
 	}
 	if _, ok := value[OperatorSum]; ok {
 		return transmuteOpSum(value, context)
@@ -207,4 +211,27 @@ func sumValues(values ...any) float64 {
 	}
 	t, _ := y.Float64()
 	return t
+}
+
+func transmuteOpExtend(value map[string]any, context any) (result any, err error) {
+	var baseAny any
+	var resultMap map[string]any
+	var ok bool
+
+	if baseAny, err = Transmute(value[OperatorExtend], context); err != nil {
+		return
+	}
+	if resultMap, ok = baseAny.(map[string]any); !ok {
+		return baseAny, nil
+	}
+
+	restMap := restMap(value, OperatorExtend)
+	var currentValue any
+	for key, value := range restMap {
+		if currentValue, err = Transmute(value, context); err == nil {
+			resultMap[key] = currentValue
+		}
+	}
+
+	return resultMap, nil
 }
