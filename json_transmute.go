@@ -1,4 +1,4 @@
-package libtransmute
+package json_transmute
 
 import (
 	"bytes"

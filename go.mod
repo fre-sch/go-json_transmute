@@ -1,4 +1,4 @@
-module github.com/fre-sch/go-libtransmute
+module github.com/fre-sch/go-json_transmute
 
 go 1.17
 
