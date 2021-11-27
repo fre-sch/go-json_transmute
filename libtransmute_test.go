@@ -1,4 +1,4 @@
-package transmute
+package libtransmute
 
 import (
 	"reflect"
